@@ -4,59 +4,59 @@ from rest_framework.views import APIView
 
 from apps.shared.envelope import APIResponse
 
-from .models import Product
-from .serializers import ProductSerializer
+from .models import Category
+from .serializers import CategorySerializer
 
 
-class ProductList(APIView):
+class CategoryList(APIView):
     def get(self, request):
-        products = Product.objects.all()
-        serializer = ProductSerializer(products, many=True)
+        categories = Category.objects.all()
+        serializer = CategorySerializer(categories, many=True)
         return APIResponse(
-            data={"products": serializer.data},
+            data={"categories": serializer.data},
             status_code=status.HTTP_200_OK,
-            message="Produk berhasil diambil",
+            message="Kategori berhasil diambil",
         )
 
     def post(self, request):
-        serializer = ProductSerializer(data=request.data)
+        serializer = CategorySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return APIResponse(
             data=serializer.data,
             status_code=status.HTTP_201_CREATED,
-            message="Produk berhasil dibuat",
+            message="Kategori berhasil dibuat",
         )
 
 
-class ProductDetail(APIView):
+class CategoryDetail(APIView):
     def get_object(self, pk):
         try:
-            return Product.objects.get(pk=pk)
-        except Product.DoesNotExist:
-            raise NotFound("Produk tidak ditemukan.")
+            return Category.objects.get(pk=pk)
+        except Category.DoesNotExist:
+            raise NotFound("Kategori tidak ditemukan.")
 
     def get(self, request, pk):
-        product = self.get_object(pk)
-        serializer = ProductSerializer(product)
+        category = self.get_object(pk)
+        serializer = CategorySerializer(category)
         return APIResponse(
             data=serializer.data,
             status_code=status.HTTP_200_OK,
-            message="Produk berhasil diambil",
+            message="Kategori berhasil diambil",
         )
 
     def put(self, request, pk):
-        product = self.get_object(pk)
-        serializer = ProductSerializer(product, data=request.data, partial=True)
+        category = self.get_object(pk)
+        serializer = CategorySerializer(category, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return APIResponse(
             data=serializer.data,
             status_code=status.HTTP_200_OK,
-            message="Produk berhasil diperbarui",
+            message="Kategori berhasil diperbarui",
         )
 
     def delete(self, request, pk):
-        product = self.get_object(pk)
-        product.delete()
+        category = self.get_object(pk)
+        category.delete()
         return APIResponse(status_code=status.HTTP_204_NO_CONTENT)

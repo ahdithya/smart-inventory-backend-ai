@@ -30,7 +30,7 @@ venv.bak/
 
 .env
 .env.*
-!.env.example
+.env.example
 *.pem
 
 backend/staticfiles/
@@ -68,3 +68,6 @@ Desktop.ini
 *.pid
 pgdata/
 postgres_data/
+
+
+./README.md
