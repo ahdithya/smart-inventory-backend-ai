@@ -1,6 +1,6 @@
 # Backend — Django + FastAPI
 
-Backend & AI service Smart Inventory & Demand Prediction. Dibangun dengan **Django 5.2 + DRF** (API utama) + **FastAPI** (forecasting) + PostgreSQL.
+Backend & AI service Smart Inventory & Demand Prediction (Smartify UMKM). Dibangun dengan **Django 5.2 + DRF** (API utama) + **FastAPI** (forecasting) + PostgreSQL.
 
 ## Struktur
 
@@ -58,7 +58,7 @@ uvicorn src.main:app --reload --port 8001
 
 ## Konvensi
 
-- Semua respons memakai envelope `{status, message, data}` (lihat `docs/ARCHITECTURE.md` §2.3).
+- Semua respons memakai envelope `{status, message, data}`
 - `ai-service` stateless — dipanggil hanya oleh backend via header `X-API-Key`.
 - Base URL API: `http://localhost:8000/api/`.
 - Health check AI: `GET http://localhost:8001/health` (header `X-API-Key`).
