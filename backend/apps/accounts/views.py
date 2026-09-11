@@ -4,10 +4,13 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from shared.envelope import APIResponse
 
+from shared.exceptions import NotFoundError
+from .models import BusinessProfile
+from .permissions import IsOwner
 from .serializers import (
+    BusinessProfileSerializer,
     LoginSerializer,
     RegisterSerializer,
     UserSerializer,
@@ -74,4 +77,32 @@ class MeView(APIView):
             data=UserSerializer(request.user).data,
             status_code=status.HTTP_200_OK,
             message="Profil berhasil diambil",
+        )
+
+
+class BusinessProfileView(APIView):
+    def get_permissions(self):
+        if self.request.method == "PUT":
+            return [IsOwner()]
+        return [IsAuthenticated()]
+
+    def get(self, request):
+        profile = BusinessProfile.objects.first()
+        if profile is None:
+            raise NotFoundError("Profil bisnis belum tersedia.")
+        return APIResponse(
+            data=BusinessProfileSerializer(profile).data,
+            status_code=status.HTTP_200_OK,
+            message="Profil bisnis berhasil diambil",
+        )
+
+    def put(self, request):
+        profile = request.user.business_profile
+        serializer = BusinessProfileSerializer(profile, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return APIResponse(
+            data=serializer.data,
+            status_code=status.HTTP_200_OK,
+            message="Profil bisnis berhasil diperbarui",
         )
