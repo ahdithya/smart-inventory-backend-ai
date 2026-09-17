@@ -1,7 +1,9 @@
 from rest_framework import status
 from rest_framework.exceptions import NotFound
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
+from apps.accounts.permissions import IsOwner
 from shared.envelope import APIResponse
 
 from .models import Category
@@ -9,6 +11,11 @@ from .serializers import CategorySerializer
 
 
 class CategoryList(APIView):
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsOwner()]
+        return [IsAuthenticated()]
+
     def get(self, request):
         categories = Category.objects.all()
         serializer = CategorySerializer(categories, many=True)
@@ -30,6 +37,11 @@ class CategoryList(APIView):
 
 
 class CategoryDetail(APIView):
+    def get_permissions(self):
+        if self.request.method in ("PUT", "DELETE"):
+            return [IsOwner()]
+        return [IsAuthenticated()]
+
     def get_object(self, pk):
         try:
             return Category.objects.get(pk=pk)

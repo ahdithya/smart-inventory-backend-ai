@@ -80,3 +80,40 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("Username atau password salah.")
         attrs["user"] = user
         return attrs
+
+
+class UserCreateSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, min_length=8)
+    role = serializers.ChoiceField(
+        choices=User.Role.choices,
+        default=User.Role.STAFF,
+        required=False,
+    )
+
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Username sudah digunakan.")
+        return value
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email sudah digunakan.")
+        return value
+
+    def create(self, validated_data):
+        return User.objects.create_user(
+            username=validated_data["username"],
+            email=validated_data["email"],
+            password=validated_data["password"],
+            role=validated_data.get("role", User.Role.STAFF),
+        )
+
+
+class RoleUpdateSerializer(serializers.ModelSerializer):
+    role = serializers.ChoiceField(choices=User.Role.choices)
+
+    class Meta:
+        model = User
+        fields = ["role"]

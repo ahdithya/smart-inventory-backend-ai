@@ -5,14 +5,16 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from shared.envelope import APIResponse
-
 from shared.exceptions import NotFoundError
-from .models import BusinessProfile
+
+from .models import BusinessProfile, User
 from .permissions import IsOwner
 from .serializers import (
     BusinessProfileSerializer,
     LoginSerializer,
     RegisterSerializer,
+    RoleUpdateSerializer,
+    UserCreateSerializer,
     UserSerializer,
     get_tokens_for_user,
 )
@@ -105,4 +107,44 @@ class BusinessProfileView(APIView):
             data=serializer.data,
             status_code=status.HTTP_200_OK,
             message="Profil bisnis berhasil diperbarui",
+        )
+
+
+class UserListView(APIView):
+    permission_classes = [IsOwner]
+
+    def get(self, request):
+        users = User.objects.all().order_by("id")
+        return APIResponse(
+            data={"users": UserSerializer(users, many=True).data},
+            status_code=status.HTTP_200_OK,
+            message="Daftar user berhasil diambil",
+        )
+
+    def post(self, request):
+        serializer = UserCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return APIResponse(
+            data=UserSerializer(user).data,
+            status_code=status.HTTP_201_CREATED,
+            message="User berhasil dibuat",
+        )
+
+
+class UserRoleUpdateView(APIView):
+    permission_classes = [IsOwner]
+
+    def patch(self, request, pk):
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            raise NotFoundError("User tidak ditemukan.")
+        serializer = RoleUpdateSerializer(user, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return APIResponse(
+            data=UserSerializer(user).data,
+            status_code=status.HTTP_200_OK,
+            message="Role user berhasil diubah",
         )
