@@ -43,6 +43,12 @@ backend/db.sqlite3-journal
 **/migrations/*
 !**/migrations/__init__.py
 
+# Tests (tidak di-commit/push ke GitHub)
+**/tests.py
+**/test_*.py
+**/tests_*.py
+tests/
+
 
 .pytest_cache/
 .coverage
