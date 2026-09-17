@@ -11,21 +11,31 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+env = environ.Env()
+env_file = BASE_DIR / ".env"
+if env_file.exists():
+    environ.Env.read_env(env_file)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-xqe+@3ml@!+$ektiqbdsiozp11c@t+!23g0x4c!cyw(0im#cxh"
+SECRET_KEY = env(
+    "SECRET_KEY",
+    default="django-insecure-xqe+@3ml@!+$ektiqbdsiozp11c@t+!23g0x4c!cyw(0im#cxh",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool("DEBUG", default=True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env.list(
+    "DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1"]
+)
 
 
 # Application definition
@@ -84,11 +94,11 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "smart_inventory",
-        "USER": "smart_inventory",
-        "PASSWORD": "smart_inventory_dev",
-        "HOST": "localhost",
-        "PORT": "5432",
+        "NAME": env("DB_NAME", default="smart_inventory"),
+        "USER": env("DB_USER", default="smart_inventory"),
+        "PASSWORD": env("DB_PASSWORD", default="smart_inventory_dev"),
+        "HOST": env("DB_HOST", default="localhost"),
+        "PORT": env("DB_PORT", default="5432"),
     }
 }
 
@@ -112,9 +122,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 # CORS ACCESS
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-]
+CORS_ALLOWED_ORIGINS = env.list(
+    "CORS_ALLOWED_ORIGINS", default=["http://localhost:5173"]
+)
 
 
 # Internationalization
