@@ -16,6 +16,7 @@ Including another URLconf
 """
 
 from apps.accounts.views import BusinessProfileView, UserListView, UserRoleUpdateView
+from apps.stock.views import StockListView
 from django.contrib import admin
 from django.urls import include, path
 
@@ -24,6 +25,8 @@ urlpatterns = [
     path("api/auth/", include("apps.accounts.urls")),
     path("api/categories/", include("apps.categories.urls")),
     path("api/products/", include("apps.products.urls")),
+    path("api/stock-movements/", include("apps.stock.urls")),
+    path("api/stock/", StockListView.as_view(), name="stock-list"),
     path("api/users/", UserListView.as_view(), name="user-list"),
     path(
         "api/users/<int:pk>/role/",
