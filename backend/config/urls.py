@@ -25,7 +25,11 @@ urlpatterns = [
     path("api/categories/", include("apps.categories.urls")),
     path("api/products/", include("apps.products.urls")),
     path("api/users/", UserListView.as_view(), name="user-list"),
-    path("api/users/<int:pk>/role/", UserRoleUpdateView.as_view(), name="user-role-update"),
+    path(
+        "api/users/<int:pk>/role/",
+        UserRoleUpdateView.as_view(),
+        name="user-role-update",
+    ),
     path(
         "api/business-profile/", BusinessProfileView.as_view(), name="business-profile"
     ),
