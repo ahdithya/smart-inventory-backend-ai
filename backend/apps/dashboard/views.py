@@ -45,6 +45,22 @@ class DashboardSummaryView(APIView):
             ]
             or 0
         )
+        # Top 5 produk terlaris sepanjang masa / data aktif
+        top_products_qs = (
+            SaleItem.objects.filter(product__is_active=True)
+            .values("product_id", "product__name", "product__category__name")
+            .annotate(total_sold=Sum("qty"))
+            .order_by("-total_sold")[:5]
+        )
+        top_products = [
+            {
+                "id": r["product_id"],
+                "name": r["product__name"],
+                "category": r["product__category__name"] or "",
+                "total_sold": r["total_sold"],
+            }
+            for r in top_products_qs
+        ]
 
         data = {
             "total_products": total_products,
@@ -54,6 +70,7 @@ class DashboardSummaryView(APIView):
             "today_sales_total": str(today_sales_total),
             "today_sales_count": today_sales_count,
             "today_items_sold": today_items_sold,
+            "top_products": top_products,
         }
 
         return APIResponse(
