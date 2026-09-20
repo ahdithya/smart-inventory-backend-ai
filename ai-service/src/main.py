@@ -7,6 +7,8 @@ from fastapi.responses import JSONResponse
 
 from src.auth import APIKeyAuthError
 from src.envelope import error
+from src.forecast.router import router as forecast_router
+from src.forecast.service import InsufficientDataError
 
 app = FastAPI(
     title="Smartify UMKM - AI Service",
@@ -30,6 +32,12 @@ async def auth_exception_handler(request: Request, exc: APIKeyAuthError) -> JSON
     return error(code=exc.code, message=exc.message, status_code=exc.status_code)
 
 
+@app.exception_handler(InsufficientDataError)
+async def insufficient_data_exception_handler(request: Request, exc: InsufficientDataError) -> JSONResponse:
+    """Tangani error riwayat penjualan kurang dari 30 hari (HTTP 400)."""
+    return error(code=exc.code, message=exc.message, status_code=exc.status_code)
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     """Tangani error validasi input dengan envelope standar."""
@@ -44,6 +52,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 async def health_check():
     """Endpoint pemeriksaan kesehatan service. Bebas autentikasi sesuai kontrak §2.3."""
     return {"status": "ok"}
+
+
+# Registrasi router fitur peramalan
+app.include_router(forecast_router)
 
 
 if __name__ == "__main__":
