@@ -10,6 +10,7 @@ from src.forecast.models import (
     run_backtest_evaluation,
     select_best_model,
 )
+from src.forecast.pretrained import PretrainedDemandForecaster
 from src.forecast.schemas import (
     DailyForecast,
     ForecastData,
@@ -66,17 +67,29 @@ def generate_demand_forecast(request: ForecastRequest) -> ForecastData:
     series: List[float] = [aggregated_sales[d] for d in sorted_dates]
     last_date = sorted_dates[-1]
 
-    # Pemilihan model
-    if request.model == "auto":
-        chosen_model_name = select_best_model(series, eval_horizon=7)
-    else:
-        chosen_model_name = request.model
-
-    # Inisialisasi model terpilih
-    if chosen_model_name == "moving_average":
+    # Pemilihan model:
+    # 1. auto/pretrained/champion -> prioritaskan champion pretrained model jika tersedia
+    # 2. moving_average / exponential_smoothing -> model baseline spesifik
+    # 3. fallback -> baseline statistik via select_best_model
+    if request.model in ("auto", "pretrained", "champion") and PretrainedDemandForecaster.is_available():
+        model_instance = PretrainedDemandForecaster()
+        chosen_model_name = model_instance.name
+        is_pretrained = True
+    elif request.model == "moving_average":
         model_instance = MovingAverageModel(window=7)
-    else:
+        chosen_model_name = "moving_average"
+        is_pretrained = False
+    elif request.model == "exponential_smoothing":
         model_instance = ExponentialSmoothingModel()
+        chosen_model_name = "exponential_smoothing"
+        is_pretrained = False
+    else:
+        chosen_model_name = select_best_model(series, eval_horizon=7)
+        if chosen_model_name == "moving_average":
+            model_instance = MovingAverageModel(window=7)
+        else:
+            model_instance = ExponentialSmoothingModel()
+        is_pretrained = False
 
     horizon_results: List[HorizonResult] = []
 
@@ -84,8 +97,18 @@ def generate_demand_forecast(request: ForecastRequest) -> ForecastData:
     horizons = sorted(request.horizon_days)
 
     for h in horizons:
-        # Hitung prediksi harian masa depan
-        predictions = model_instance.fit_predict(series, horizon=h)
+        eval_horizon = min(h, len(series) // 2)
+
+        if is_pretrained:
+            predictions = model_instance.fit_predict(series, horizon=h, last_date=last_date)
+            _, metrics_dict = model_instance.backtest_evaluate(
+                series, last_date=last_date, eval_horizon=eval_horizon
+            )
+        else:
+            predictions = model_instance.fit_predict(series, horizon=h)
+            _, metrics_dict = run_backtest_evaluation(
+                chosen_model_name, series, eval_horizon=eval_horizon
+            )
 
         daily_list: List[DailyForecast] = []
         for i, qty in enumerate(predictions):
@@ -93,10 +116,6 @@ def generate_demand_forecast(request: ForecastRequest) -> ForecastData:
             daily_list.append(DailyForecast(date=future_date.isoformat(), qty=qty))
 
         total_predicted = round(sum(d.qty for d in daily_list), 2)
-
-        # Hitung metrik backtest untuk horizon ini (menggunakan holdout)
-        eval_horizon = min(h, len(series) // 2)
-        _, metrics_dict = run_backtest_evaluation(chosen_model_name, series, eval_horizon=eval_horizon)
 
         horizon_results.append(
             HorizonResult(

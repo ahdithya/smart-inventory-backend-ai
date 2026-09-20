@@ -18,7 +18,9 @@ class ForecastRequest(BaseModel):
     product_id: int
     sales_history: List[SalesHistoryItem]
     horizon_days: List[int] = Field(default=[7, 14], description="Daftar horizon hari peramalan")
-    model: Literal["moving_average", "exponential_smoothing", "auto"] = Field(
+    model: Literal[
+        "moving_average", "exponential_smoothing", "auto", "pretrained", "champion"
+    ] = Field(
         default="auto",
         description="Model peramalan yang digunakan"
     )
