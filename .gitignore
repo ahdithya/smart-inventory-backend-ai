@@ -38,6 +38,8 @@ backend/media/
 backend/db.sqlite3
 backend/db.sqlite3-journal
 *.log
+data/
+*.csv
 
 # Migrations
 **/migrations/*
