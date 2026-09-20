@@ -2,7 +2,7 @@
   "model_name": "lightgbm_regressor",
   "display_name": "LightGBM Regressor",
   "algorithm": "gbdt",
-  "trained_at": "2026-09-20T07:55:11.807316",
+  "trained_at": "2026-09-20T08:25:04.195007",
   "feature_columns": [
     "dayofweek",
     "is_weekend",
@@ -21,51 +21,51 @@
     "rolling_std_7"
   ],
   "metrics": {
-    "mae": 3.05,
-    "rmse": 4.2,
-    "mape": 4.75,
-    "wape": 3.73
+    "mae": 5.79,
+    "rmse": 7.48,
+    "mape": 13.81,
+    "wape": 11.68
   },
   "benchmark_summary": [
     {
       "name": "Moving Average (MA-7)",
-      "mae": 18.27,
-      "rmse": 26.31,
-      "mape": 19.88,
-      "wape": 22.34,
-      "time_s": 0.01
+      "mae": 11.12,
+      "rmse": 14.34,
+      "mape": 28.04,
+      "wape": 22.44,
+      "time_s": 0.035
     },
     {
       "name": "Exponential Smoothing (SES)",
-      "mae": 17.77,
-      "rmse": 25.29,
-      "mape": 19.61,
-      "wape": 21.73,
-      "time_s": 0.043
+      "mae": 11.3,
+      "rmse": 14.53,
+      "mape": 28.76,
+      "wape": 22.8,
+      "time_s": 0.168
     },
     {
       "name": "ARIMA(1,1,1)",
-      "mae": 17.07,
-      "rmse": 22.44,
-      "mape": 21.17,
-      "wape": 20.87,
-      "time_s": 0.832
+      "mae": 11.55,
+      "rmse": 14.81,
+      "mape": 29.65,
+      "wape": 23.31,
+      "time_s": 2.423
     },
     {
       "name": "XGBoost Regressor",
-      "mae": 3.06,
-      "rmse": 4.05,
-      "mape": 4.76,
-      "wape": 3.74,
-      "time_s": 0.494
+      "mae": 5.8,
+      "rmse": 7.51,
+      "mape": 13.82,
+      "wape": 11.71,
+      "time_s": 0.871
     },
     {
       "name": "LightGBM Regressor",
-      "mae": 3.05,
-      "rmse": 4.2,
-      "mape": 4.75,
-      "wape": 3.73,
-      "time_s": 0.763
+      "mae": 5.79,
+      "rmse": 7.48,
+      "mape": 13.81,
+      "wape": 11.68,
+      "time_s": 0.967
     }
   ]
 }

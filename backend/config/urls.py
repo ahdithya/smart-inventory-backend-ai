@@ -19,30 +19,34 @@ from apps.accounts.views import BusinessProfileView, UserListView, UserRoleUpdat
 from apps.forecasts.views import RestockRecommendationListView
 from apps.stock.views import StockListView
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
 
-urlpatterns = [
-    path("admin/", admin.site.urls),
-    path("api/auth/", include("apps.accounts.urls")),
-    path("api/categories/", include("apps.categories.urls")),
-    path("api/dashboard/", include("apps.dashboard.urls")),
-    path("api/products/", include("apps.products.urls")),
-    path("api/sales/", include("apps.sales.urls")),
-    path("api/stock-movements/", include("apps.stock.urls")),
-    path("api/stock/", StockListView.as_view(), name="stock-list"),
-    path("api/users/", UserListView.as_view(), name="user-list"),
+api_patterns = [
+    path("auth/", include("apps.accounts.urls")),
+    path("categories/", include("apps.categories.urls")),
+    path("dashboard/", include("apps.dashboard.urls")),
+    path("products/", include("apps.products.urls")),
+    path("sales/", include("apps.sales.urls")),
+    path("stock-movements/", include("apps.stock.urls")),
+    path("stock/", StockListView.as_view(), name="stock-list"),
+    path("users/", UserListView.as_view(), name="user-list"),
     path(
-        "api/users/<int:pk>/role/",
+        "users/<int:pk>/role/",
         UserRoleUpdateView.as_view(),
         name="user-role-update",
     ),
     path(
-        "api/business-profile/", BusinessProfileView.as_view(), name="business-profile"
+        "business-profile/", BusinessProfileView.as_view(), name="business-profile"
     ),
-    path("api/forecasts/", include("apps.forecasts.urls")),
+    path("forecasts/", include("apps.forecasts.urls")),
     path(
-        "api/restock-recommendations/",
+        "restock-recommendations/",
         RestockRecommendationListView.as_view(),
         name="restock-recommendations",
     ),
+]
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    re_path(r"^api/(?:v1/)?", include(api_patterns)),
 ]
