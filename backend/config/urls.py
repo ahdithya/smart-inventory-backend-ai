@@ -16,6 +16,7 @@ Including another URLconf
 """
 
 from apps.accounts.views import BusinessProfileView, UserListView, UserRoleUpdateView
+from apps.forecasts.views import RestockRecommendationListView
 from apps.stock.views import StockListView
 from django.contrib import admin
 from django.urls import include, path
@@ -39,4 +40,9 @@ urlpatterns = [
         "api/business-profile/", BusinessProfileView.as_view(), name="business-profile"
     ),
     path("api/forecasts/", include("apps.forecasts.urls")),
+    path(
+        "api/restock-recommendations/",
+        RestockRecommendationListView.as_view(),
+        name="restock-recommendations",
+    ),
 ]

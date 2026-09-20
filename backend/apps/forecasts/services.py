@@ -1,16 +1,18 @@
 """Service integrasi peramalan permintaan antara Backend Django dan ai-service."""
 
 import datetime
+from decimal import Decimal
 import logging
 from typing import Any, Dict, List, Optional
 import httpx
 from django.conf import settings
+from django.db.models import Case, IntegerField, Value, When
 from django.utils import timezone
 
 from apps.products.models import Product
 from apps.sales.services import get_daily_sales_history
 
-from .models import Forecast
+from .models import Forecast, RestockRecommendation
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +146,16 @@ def get_or_generate_product_forecast(
                 )
                 saved_forecasts.append(f_obj)
 
+            # Hitung & simpan rekomendasi restock otomatis setelah forecast tersimpan (Tiket 13)
+            try:
+                calculate_restock_recommendation_for_product(product)
+            except Exception as exc:
+                logger.warning(
+                    "Gagal memperbarui rekomendasi restock untuk produk %s: %s",
+                    product.id,
+                    exc,
+                )
+
             return format_forecast_response(product, saved_forecasts, stale=False)
 
         elif response.status_code == 400 and response.json().get("code") == "INSUFFICIENT_DATA":
@@ -216,3 +228,146 @@ def get_or_generate_product_forecast(
             "generated_at": None,
             "horizons": [],
         }
+
+
+def calculate_restock_recommendation_for_product(
+    product: Product,
+    avg_daily_demand: Optional[Decimal | float] = None,
+) -> RestockRecommendation:
+    """
+    Menghitung rekomendasi kuantitas restock produk berdasarkan formula (PRD §4.6 & DATABASE §2.8):
+    recommended_qty = max(0, (avg_daily_demand × lead_time_days) + safety_stock − current_stock)
+
+    Status Urgensi:
+    - critical: current_stock <= 0
+    - warning:  current_stock <= min_stock (dan current_stock > 0)
+    - ok:       current_stock > min_stock
+
+    Format detail JSON:
+    {
+        "avg_daily_demand": 6.0,
+        "lead_time_days": 7,
+        "lead_time_demand": 42,
+        "safety_stock": 5,
+        "current_stock": 30,
+        "formula": "max(0, (6.0 × 7) + 5 − 30) = 17"
+    }
+    """
+    if avg_daily_demand is None:
+        f7 = (
+            Forecast.objects.filter(product=product, horizon_days=7)
+            .order_by("-generated_at")
+            .first()
+        )
+        if f7 and f7.horizon_days > 0:
+            avg_daily_demand = Decimal(
+                str(round(f7.total_predicted / f7.horizon_days, 2))
+            )
+        else:
+            f14 = (
+                Forecast.objects.filter(product=product, horizon_days=14)
+                .order_by("-generated_at")
+                .first()
+            )
+            if f14 and f14.horizon_days > 0:
+                avg_daily_demand = Decimal(
+                    str(round(f14.total_predicted / f14.horizon_days, 2))
+                )
+            else:
+                avg_daily_demand = Decimal("0.00")
+    else:
+        avg_daily_demand = Decimal(str(round(float(avg_daily_demand), 2)))
+
+    avg_float = float(avg_daily_demand)
+    lead_time_days = int(product.lead_time_days)
+    safety_stock = int(product.safety_stock)
+    current_stock = int(product.current_stock)
+    min_stock = int(product.min_stock)
+
+    lead_time_demand = int(round(avg_float * lead_time_days))
+    raw_qty = (avg_float * lead_time_days) + safety_stock - current_stock
+    recommended_qty = max(0, int(round(raw_qty)))
+
+    if current_stock <= 0:
+        urgency_status = "critical"
+    elif current_stock <= min_stock:
+        urgency_status = "warning"
+    else:
+        urgency_status = "ok"
+
+    avg_str = f"{avg_float:.1f}" if avg_float.is_integer() else f"{avg_float}"
+    formula_str = (
+        f"max(0, ({avg_str} × {lead_time_days}) + {safety_stock} − {current_stock}) = {recommended_qty}"
+    )
+
+    detail = {
+        "avg_daily_demand": avg_float,
+        "lead_time_days": lead_time_days,
+        "lead_time_demand": lead_time_demand,
+        "safety_stock": safety_stock,
+        "current_stock": current_stock,
+        "formula": formula_str,
+    }
+
+    recommendation, _ = RestockRecommendation.objects.update_or_create(
+        product=product,
+        defaults={
+            "recommended_qty": recommended_qty,
+            "avg_daily_demand": avg_daily_demand,
+            "status": urgency_status,
+            "detail": detail,
+        },
+    )
+    return recommendation
+
+
+def sync_and_get_restock_recommendations(
+    status_filter: Optional[str] = None,
+    product_id: Optional[int] = None,
+):
+    """
+    Memperbarui rekomendasi untuk produk aktif dan mengembalikan QuerySet
+    yang diurutkan berdasarkan prioritas urgensi: critical -> warning -> ok.
+    """
+    active_products = Product.objects.filter(is_active=True).select_related("category")
+    if product_id:
+        active_products = active_products.filter(pk=product_id)
+
+    # Sinkronisasi rekomendasi untuk produk aktif
+    forecasts = (
+        Forecast.objects.filter(horizon_days=7)
+        .order_by("product_id", "-generated_at")
+    )
+    forecast_map = {}
+    for f in forecasts:
+        if f.product_id not in forecast_map:
+            forecast_map[f.product_id] = f
+
+    for p in active_products:
+        f = forecast_map.get(p.id)
+        avg_demand = None
+        if f and f.horizon_days > 0:
+            avg_demand = Decimal(str(round(f.total_predicted / f.horizon_days, 2)))
+        calculate_restock_recommendation_for_product(p, avg_daily_demand=avg_demand)
+
+    urgency_order = Case(
+        When(status="critical", then=Value(1)),
+        When(status="warning", then=Value(2)),
+        When(status="ok", then=Value(3)),
+        default=Value(4),
+        output_field=IntegerField(),
+    )
+
+    qs = (
+        RestockRecommendation.objects.filter(product__is_active=True)
+        .select_related("product", "product__category")
+        .annotate(urgency_priority=urgency_order)
+        .order_by("urgency_priority", "-recommended_qty", "product__name")
+    )
+
+    if status_filter:
+        qs = qs.filter(status=status_filter.lower())
+    if product_id:
+        qs = qs.filter(product_id=product_id)
+
+    return qs
