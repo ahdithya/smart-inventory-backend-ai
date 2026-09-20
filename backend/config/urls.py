@@ -38,4 +38,5 @@ urlpatterns = [
     path(
         "api/business-profile/", BusinessProfileView.as_view(), name="business-profile"
     ),
+    path("api/forecasts/", include("apps.forecasts.urls")),
 ]

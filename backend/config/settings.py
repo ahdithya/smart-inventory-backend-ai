@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "apps.stock",
     "apps.sales",
     "apps.dashboard",
+    "apps.forecasts",
 ]
 
 MIDDLEWARE = [
@@ -161,3 +162,8 @@ REST_FRAMEWORK = {
 }
 
 AUTH_USER_MODEL = "accounts.User"
+
+# AI Service Configuration
+AI_SERVICE_URL = env("AI_SERVICE_URL", default="http://localhost:8001")
+AI_SERVICE_API_KEY = env("AI_SERVICE_API_KEY", default="dev-ai-service-key")
+AI_SERVICE_TIMEOUT = env.float("AI_SERVICE_TIMEOUT", default=10.0)
