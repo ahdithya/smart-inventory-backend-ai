@@ -24,7 +24,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "username", "email", "role", "business_profile"]
+        fields = ["id", "username", "email", "role", "is_active", "business_profile"]
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -112,8 +112,9 @@ class UserCreateSerializer(serializers.Serializer):
 
 
 class RoleUpdateSerializer(serializers.ModelSerializer):
-    role = serializers.ChoiceField(choices=User.Role.choices)
+    role = serializers.ChoiceField(choices=User.Role.choices, required=False)
+    is_active = serializers.BooleanField(required=False)
 
     class Meta:
         model = User
-        fields = ["role"]
+        fields = ["role", "is_active"]

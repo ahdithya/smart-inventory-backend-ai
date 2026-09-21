@@ -140,11 +140,16 @@ class UserRoleUpdateView(APIView):
             user = User.objects.get(pk=pk)
         except User.DoesNotExist:
             raise NotFoundError("User tidak ditemukan.")
-        serializer = RoleUpdateSerializer(user, data=request.data)
+
+        # Proteksi: Jangan izinkan user menonaktifkan akun miliknya sendiri
+        if "is_active" in request.data and not request.data["is_active"] and user.pk == request.user.pk:
+            raise ValidationError({"is_active": ["Anda tidak dapat menonaktifkan akun Anda sendiri."]})
+
+        serializer = RoleUpdateSerializer(user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return APIResponse(
             data=UserSerializer(user).data,
             status_code=status.HTTP_200_OK,
-            message="Role user berhasil diubah",
+            message="Data user berhasil diperbarui",
         )
