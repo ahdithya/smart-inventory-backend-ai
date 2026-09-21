@@ -313,6 +313,8 @@ def calculate_restock_recommendation_for_product(
         "lead_time_demand": lead_time_demand,
         "safety_stock": safety_stock,
         "current_stock": current_stock,
+        "demand_7_days": int(round(avg_float * 7)),
+        "demand_14_days": int(round(avg_float * 14)),
         "formula": formula_str,
     }
 
