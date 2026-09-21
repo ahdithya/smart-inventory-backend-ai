@@ -30,8 +30,12 @@ def format_forecast_response(
     stale: bool = False,
     status_code: str = "OK",
     message: Optional[str] = None,
+    sales_history: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """Format dictionary representasi peramalan produk."""
+    if sales_history is None:
+        sales_history = get_daily_sales_history(product.id, days=30)
+
     horizons_data = []
     model_name = ""
     latest_gen_at = None
@@ -60,6 +64,7 @@ def format_forecast_response(
         "stale": stale,
         "model": model_name,
         "generated_at": latest_gen_at.isoformat() if latest_gen_at else None,
+        "sales_history": sales_history,
         "horizons": horizons_data,
     }
 
@@ -96,6 +101,7 @@ def get_or_generate_product_forecast(
                 stale=True,
                 status_code="INSUFFICIENT_DATA",
                 message="Riwayat penjualan terbaru kurang dari 30 hari. Menampilkan data peramalan sebelumnya.",
+                sales_history=sales_history,
             )
         return {
             "product_id": product.id,
@@ -106,6 +112,7 @@ def get_or_generate_product_forecast(
             "stale": False,
             "model": None,
             "generated_at": None,
+            "sales_history": sales_history,
             "horizons": [],
         }
 
